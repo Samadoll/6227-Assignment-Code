@@ -1,4 +1,4 @@
-# from sklearn.preprocessing import StandardScaler
+import time
 import pandas as pd
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
@@ -101,12 +101,15 @@ def NN(train_X, train_y, test_X, test_y, n_batch_size, n_hidden_dim):
     model = Sequential()
     model.add(Dense(n_hidden_dim, activation='relu', input_dim=X_train.shape[1]))
     model.add(Dense(2, activation='sigmoid'))
-
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+    time_1 = time.time()
     history = model.fit(X_train, y_train, epochs=20, batch_size=n_batch_size, validation_data=(X_val, y_val), verbose=1)
+    time_2 = time.time()
     test_loss, test_acc = model.evaluate(transformed_test_X, test_y)
-    # print('NN accuracy:', test_acc)
-    return test_acc
+    time_3 = time.time()
+
+    return test_acc, test_loss, time_2 - time_1, time_3 - time_2
 
 
 def nn_tuning_run():
@@ -129,24 +132,18 @@ def nn_tuning_run():
 
     with open("nn_result.txt", "w") as f:
         for args in args_list:
-            acc = nn_tuning_run_helper(args)
+            acc, loss, train_time, test_time = NN(train_X, train_y, test_X, test_y, args["batch_size"], args["hidden_dim"])
             if acc > best_acc:
                 best_acc = acc
-                best_result = {"batch_size": args['batch_size'], "hidden_dim": args['hidden_dim']}
+                best_result = {"batch_size": args['batch_size'], "hidden_dim": args['hidden_dim'], "loss": loss, "train_time": train_time, "test_time": test_time}
             f.write(f"batch_size: {args['batch_size']}, hidden_dim: {args['hidden_dim']}\n")
-            f.write(f"nn_acc: {acc}\n")
+            f.write(f"nn_acc: {acc}, nn_loss: {loss}, train_time: {train_time}, test_time: {test_time}\n")
             f.write("================================================\n")
         f.write(f"best result:\n")
         f.write(f"batch_size: {best_result['batch_size']}, hidden_dim: {best_result['hidden_dim']}\n")
-        f.write(f"nn_acc: {best_acc}\n")
+        f.write(f"nn_acc: {best_acc}, nn_loss: {best_result['loss']}, train_time: {best_result['train_time']}, test_time: {best_result['test_time']}\n")
 
     print("nn tuning done")
-
-
-def nn_tuning_run_helper(args):
-    nn_acc = NN(train_X, train_y, test_X, test_y, args["batch_size"], args["hidden_dim"])
-    return nn_acc
-
 
 
 nn_tuning_run()
