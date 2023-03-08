@@ -23,7 +23,7 @@ train_data = train_data[~train_data.astype(str).apply(lambda x: x.str.contains('
 test_data = test_data[~test_data.astype(str).apply(lambda x: x.str.contains('\?')).any(axis=1)]
 
 # Encoding pipelines
-# continuous_transformer = KBinsDiscretizer(n_bins=25, strategy="uniform", encode="ordinal")
+continuous_transformer = KBinsDiscretizer(n_bins=25, strategy="uniform", encode="ordinal")
 continuous_headers = ["age", "fnlwgt", "education-num", "capital-gain", "capital-loss", "hours-per-week"]
 categorical_transformer = OneHotEncoder(handle_unknown="ignore", sparse=False)
 categorical_headers = ["workclass", "education", "marital-status", "occupation", "relationship", "race", "sex", "native-country"]
@@ -36,11 +36,7 @@ test_X = test_data.iloc[1:, 0:-1]
 test_y = categorical_transformer.fit_transform(np.array(test_data.iloc[1:, -1]).reshape(-1, 1))
 
 
-def change_transformer_bins(bins):
-    return KBinsDiscretizer(n_bins=bins, strategy="uniform", encode="ordinal")
-
-
-def DTC(train_X, train_y, test_X, test_y, continuous_transformer):
+def DTC(train_X, train_y, test_X, test_y):
     preprocessor = ColumnTransformer(transformers=[
         ("continuous", continuous_transformer, continuous_headers),
         ("categorical", categorical_transformer, categorical_headers)
@@ -59,7 +55,7 @@ def DTC(train_X, train_y, test_X, test_y, continuous_transformer):
     return acc
 
 
-def NN(train_X, train_y, test_X, test_y, continuous_transformer, n_batch_size, n_hidden_dim):
+def NN(train_X, train_y, test_X, test_y, n_batch_size, n_hidden_dim):
     # Transform data
     X_con = continuous_transformer.fit_transform(train_X[continuous_headers])
     X_cat = categorical_transformer.fit_transform(train_X[categorical_headers])
@@ -76,48 +72,60 @@ def NN(train_X, train_y, test_X, test_y, continuous_transformer, n_batch_size, n
     model.add(Dense(2, activation='sigmoid'))
 
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    history = model.fit(X_train, y_train, epochs=2, batch_size=n_batch_size, validation_data=(X_val, y_val), verbose=0)
+    history = model.fit(X_train, y_train, epochs=1, batch_size=n_batch_size, validation_data=(X_val, y_val), verbose=0)
     test_loss, test_acc = model.evaluate(transformed_test_X, test_y)
     # print('NN accuracy:', test_acc)
     return test_acc
 
 
+def nn_tuning_run():
+    args_list = [
+        {"batch_size": 16, "hidden_dim": 32},
+        {"batch_size": 16, "hidden_dim": 64},
+        {"batch_size": 16, "hidden_dim": 128},
 
-def run(args):
-    continuous_transformer = change_transformer_bins(args["bins"])
-    nn_acc = NN(train_X, train_y, test_X, test_y, continuous_transformer, args["batch_size"], args["hidden_dim"])
-    dtc_acc = DTC(train_X, train_y, test_X, test_y, continuous_transformer)
-    return (nn_acc, dtc_acc)
+        {"batch_size": 32, "hidden_dim": 32},
+        {"batch_size": 32, "hidden_dim": 64},
+        {"batch_size": 32, "hidden_dim": 128},
 
-nbins = [25]
+        {"batch_size": 64, "hidden_dim": 32},
+        {"batch_size": 64, "hidden_dim": 64},
+        {"batch_size": 64, "hidden_dim": 128}
+    ]
 
-args_list = [
-    {"bins": 25, "batch_size": 16, "hidden_dim": 32},
-    {"bins": 25, "batch_size": 16, "hidden_dim": 64},
-    {"bins": 25, "batch_size": 16, "hidden_dim": 128},
+    result_list = []
+    best_acc = 0
+    best_result = {}
 
-    {"bins": 25, "batch_size": 32, "hidden_dim": 32},
-    {"bins": 25, "batch_size": 32, "hidden_dim": 64},
-    {"bins": 25, "batch_size": 32, "hidden_dim": 128},
+    for args in args_list:
+        result_list.append(
+            {
+                "args": args,
+                "result": nn_tuning_run_helper(args)
+            }
+        )
 
-    {"bins": 25, "batch_size": 64, "hidden_dim": 32},
-    {"bins": 25, "batch_size": 64, "hidden_dim": 64},
-    {"bins": 25, "batch_size": 64, "hidden_dim": 128}
-]
+    with open("nn_result.txt", "w") as f:
+        for result in result_list:
+            acc = result['result']
+            if acc > best_acc:
+                best_acc = acc
+                best_result = {"batch_size": result['args']['batch_size'], "hidden_dim": result['args']['hidden_dim']}
+            f.write(f"batch_size: {result['args']['batch_size']}, hidden_dim: {result['args']['hidden_dim']}\n")
+            f.write(f"nn_acc: {acc}\n")
+            f.write("================================================\n")
+        f.write(f"best result:\n")
+        f.write(f"batch_size: {best_result['batch_size']}, hidden_dim: {best_result['hidden_dim']}\n")
+        f.write(f"nn_acc: {best_acc}\n")
 
-result_list = []
+    print("nn tuning done")
 
-for args in args_list:
-    result_list.append(
-        {
-            "args": args,
-            "result": run(args)
-        }
-    )
 
-print("done")
+def nn_tuning_run_helper(args):
+    nn_acc = NN(train_X, train_y, test_X, test_y, args["batch_size"], args["hidden_dim"])
+    # dtc_acc = DTC(train_X, train_y, test_X, test_y, continuous_transformer)
+    return nn_acc
 
-for result in result_list:
-    print("================================================")
-    print(f"bins: {result['args']['bins']}, batch_size: {result['args']['batch_size']}, hidden_dim: {result['args']['hidden_dim']}")
-    print(f"nn_acc: {result['result'][0]}, dtc_acc: {result['result'][1]}")
+
+
+nn_tuning_run()
