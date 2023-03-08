@@ -103,7 +103,7 @@ def NN(train_X, train_y, test_X, test_y, n_batch_size, n_hidden_dim):
     model.add(Dense(2, activation='sigmoid'))
 
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    history = model.fit(X_train, y_train, epochs=50, batch_size=n_batch_size, validation_data=(X_val, y_val), verbose=0)
+    history = model.fit(X_train, y_train, epochs=20, batch_size=n_batch_size, validation_data=(X_val, y_val), verbose=1)
     test_loss, test_acc = model.evaluate(transformed_test_X, test_y)
     # print('NN accuracy:', test_acc)
     return test_acc
@@ -151,4 +151,3 @@ def nn_tuning_run_helper(args):
 
 nn_tuning_run()
 DTC_run()
-
