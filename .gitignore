@@ -1,0 +1,7 @@
+*.pdf
+*/*.pdf
+.DS_Store
+*/.DS_Store
+
+# A1
+Assignment-1/*.csv
