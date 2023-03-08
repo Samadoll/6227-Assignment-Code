@@ -1,7 +1,7 @@
 # from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import numpy as np
-from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier
 from sklearn import metrics
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
@@ -11,6 +11,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 from keras.models import Sequential
 from keras.layers import Dense
+from sklearn.model_selection import GridSearchCV
 
 
 headers = ["age", "workclass", "fnlwgt", "education", "education-num", "marital-status", "occupation", "relationship", "race", "sex", "capital-gain", "capital-loss", "hours-per-week", "native-country", "label"]
@@ -36,13 +37,13 @@ test_X = test_data.iloc[1:, 0:-1]
 test_y = categorical_transformer.fit_transform(np.array(test_data.iloc[1:, -1]).reshape(-1, 1))
 
 
-def DTC(train_X, train_y, test_X, test_y):
+def DTC(train_X, train_y, test_X, test_y, params):
     preprocessor = ColumnTransformer(transformers=[
         ("continuous", continuous_transformer, continuous_headers),
         ("categorical", categorical_transformer, categorical_headers)
     ])
 
-    DTClassifier = DecisionTreeClassifier()
+    DTClassifier = DecisionTreeClassifier(max_depth=params['classifier__max_depth'], min_samples_split=params['classifier__min_samples_split'], min_samples_leaf=params['classifier__min_samples_leaf'])
     pipeline = Pipeline([("preprocessor", preprocessor), ("classifier", DTClassifier)])
     pipeline.fit(train_X, train_y)
 
@@ -51,8 +52,38 @@ def DTC(train_X, train_y, test_X, test_y):
     y_test=np.argmax(test_y, axis=1)
     cm = confusion_matrix(y_test, y_pred)
     acc = metrics.accuracy_score(y_test, y_pred)
-    # print('DTC Accuracy:', acc)
+    print('Fine-tuned DTC Accuracy:', acc)
     return acc
+
+
+def DTC_search_tuning(train_X, train_y, test_X, test_y):
+    param_grid = {
+        'classifier__max_depth': [5, 10, 15],
+        'classifier__min_samples_split': [2, 3, 4, 5, 6, 7, 8, 9, 10],
+        'classifier__min_samples_leaf': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    }
+    preprocessor = ColumnTransformer(transformers=[
+        ("continuous", continuous_transformer, continuous_headers),
+        ("categorical", categorical_transformer, categorical_headers)
+    ])
+    DTClassifier = DecisionTreeClassifier()
+    pipeline = Pipeline([("preprocessor", preprocessor), ("classifier", DTClassifier)])
+    grid_search = GridSearchCV(pipeline, param_grid=param_grid, cv=5)
+    grid_search.fit(train_X, train_y)
+    print("Best parameters:", grid_search.best_params_)
+    print("Best score:", grid_search.best_score_)
+    return grid_search.best_score_, grid_search.best_params_
+
+
+def DTC_run():
+    score, params = DTC_search_tuning(train_X, train_y, test_X, test_y)
+    acc = DTC(train_X, train_y, test_X, test_y, params)
+    with open("DTC_result.txt", "w") as f:
+        f.write(f"tuning score: {score}")
+        f.write(f"max depth: {params['classifier__max_depth']}")
+        f.write(f"min sample leaf: {params['classifier__min_samples_leaf']}")
+        f.write(f"min sample split: {params['classifier__min_samples_split']}")
+        f.write(f"DTC acc: {acc}")
 
 
 def NN(train_X, train_y, test_X, test_y, n_batch_size, n_hidden_dim):
@@ -72,7 +103,7 @@ def NN(train_X, train_y, test_X, test_y, n_batch_size, n_hidden_dim):
     model.add(Dense(2, activation='sigmoid'))
 
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    history = model.fit(X_train, y_train, epochs=1, batch_size=n_batch_size, validation_data=(X_val, y_val), verbose=0)
+    history = model.fit(X_train, y_train, epochs=50, batch_size=n_batch_size, validation_data=(X_val, y_val), verbose=0)
     test_loss, test_acc = model.evaluate(transformed_test_X, test_y)
     # print('NN accuracy:', test_acc)
     return test_acc
@@ -93,25 +124,16 @@ def nn_tuning_run():
         {"batch_size": 64, "hidden_dim": 128}
     ]
 
-    result_list = []
     best_acc = 0
     best_result = {}
 
-    for args in args_list:
-        result_list.append(
-            {
-                "args": args,
-                "result": nn_tuning_run_helper(args)
-            }
-        )
-
     with open("nn_result.txt", "w") as f:
-        for result in result_list:
-            acc = result['result']
+        for args in args_list:
+            acc = nn_tuning_run_helper(args)
             if acc > best_acc:
                 best_acc = acc
-                best_result = {"batch_size": result['args']['batch_size'], "hidden_dim": result['args']['hidden_dim']}
-            f.write(f"batch_size: {result['args']['batch_size']}, hidden_dim: {result['args']['hidden_dim']}\n")
+                best_result = {"batch_size": args['batch_size'], "hidden_dim": args['hidden_dim']}
+            f.write(f"batch_size: {args['batch_size']}, hidden_dim: {args['hidden_dim']}\n")
             f.write(f"nn_acc: {acc}\n")
             f.write("================================================\n")
         f.write(f"best result:\n")
@@ -123,9 +145,10 @@ def nn_tuning_run():
 
 def nn_tuning_run_helper(args):
     nn_acc = NN(train_X, train_y, test_X, test_y, args["batch_size"], args["hidden_dim"])
-    # dtc_acc = DTC(train_X, train_y, test_X, test_y, continuous_transformer)
     return nn_acc
 
 
 
 nn_tuning_run()
+DTC_run()
+
