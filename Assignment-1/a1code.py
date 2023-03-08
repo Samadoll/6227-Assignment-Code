@@ -79,10 +79,10 @@ def DTC_run():
     score, params = DTC_search_tuning(train_X, train_y, test_X, test_y)
     acc = DTC(train_X, train_y, test_X, test_y, params)
     with open("DTC_result.txt", "w") as f:
-        f.write(f"tuning score: {score}")
-        f.write(f"max depth: {params['classifier__max_depth']}")
-        f.write(f"min sample leaf: {params['classifier__min_samples_leaf']}")
-        f.write(f"min sample split: {params['classifier__min_samples_split']}")
+        f.write(f"tuning score: {score}\n")
+        f.write(f"max depth: {params['classifier__max_depth']}\n")
+        f.write(f"min sample leaf: {params['classifier__min_samples_leaf']}\n")
+        f.write(f"min sample split: {params['classifier__min_samples_split']}\n")
         f.write(f"DTC acc: {acc}")
 
 
