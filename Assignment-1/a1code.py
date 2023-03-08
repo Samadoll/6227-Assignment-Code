@@ -45,15 +45,19 @@ def DTC(train_X, train_y, test_X, test_y, params):
 
     DTClassifier = DecisionTreeClassifier(max_depth=params['classifier__max_depth'], min_samples_split=params['classifier__min_samples_split'], min_samples_leaf=params['classifier__min_samples_leaf'])
     pipeline = Pipeline([("preprocessor", preprocessor), ("classifier", DTClassifier)])
-    pipeline.fit(train_X, train_y)
 
+    time_1 = time.time()
+    pipeline.fit(train_X, train_y)
+    time_2 = time.time()
     y_pred = pipeline.predict(test_X)
+    time_3 = time.time()
+
     y_pred=np.argmax(y_pred, axis=1)
     y_test=np.argmax(test_y, axis=1)
     cm = confusion_matrix(y_test, y_pred)
     acc = metrics.accuracy_score(y_test, y_pred)
     print('Fine-tuned DTC Accuracy:', acc)
-    return acc
+    return acc, time_2 - time_1, time_3 - time_2
 
 
 def DTC_search_tuning(train_X, train_y, test_X, test_y):
@@ -77,13 +81,13 @@ def DTC_search_tuning(train_X, train_y, test_X, test_y):
 
 def DTC_run():
     score, params = DTC_search_tuning(train_X, train_y, test_X, test_y)
-    acc = DTC(train_X, train_y, test_X, test_y, params)
+    acc, train_time, test_time = DTC(train_X, train_y, test_X, test_y, params)
     with open("DTC_result.txt", "w") as f:
         f.write(f"tuning score: {score}\n")
         f.write(f"max depth: {params['classifier__max_depth']}\n")
         f.write(f"min sample leaf: {params['classifier__min_samples_leaf']}\n")
         f.write(f"min sample split: {params['classifier__min_samples_split']}\n")
-        f.write(f"DTC acc: {acc}")
+        f.write(f"DTC acc: {acc}, train_time: {train_time}, test_time: {test_time}")
 
 
 def NN(train_X, train_y, test_X, test_y, n_batch_size, n_hidden_dim):
