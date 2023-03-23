@@ -6,6 +6,7 @@ from sklearn.cluster import KMeans
 import time
 import os
 
+_true_centroids = []
 
 def get_random_point(n, min_distance):
     np.random.seed(1333)
@@ -89,7 +90,7 @@ def kmean_n_step(points):
 def plot_kmean_n_step(folder, data, centroids, success):
     plt.scatter(data[:,0], data[:,1], color='black')
     plt.scatter(centroids[:,0], centroids[:,1], color='red')
-    
+    true_centroid_pts = np.array(_true_centroids)
 
     # Iterate through the K-means algorithm
     for i in range(5):
@@ -100,6 +101,7 @@ def plot_kmean_n_step(folder, data, centroids, success):
         # Plot the data points and centroids
         plt.figure()
         plt.scatter(data[:,0], data[:,1], c=labels, cmap='viridis')
+        plt.scatter(true_centroid_pts[:,0], true_centroid_pts[:,1], marker="^", color='orange', s=150)
         plt.scatter(centroids[:,0], centroids[:,1], color='red')
         plt.savefig(f"{folder}/{success}_{i}_1.png")
         
@@ -123,11 +125,16 @@ def run():
     initial_points = get_initial_points()
     all_points = []
     for point in initial_points:
-        all_points += get_random_within_r(point, 10)
+        random_pts = get_random_within_r(point, 10)
+        all_points += random_pts
+        set_true_centroid([point] + random_pts)
     all_points += initial_points
     # plot_points(all_points)
     kmean_n_step(all_points)
 
+
+def set_true_centroid(data):
+    _true_centroids.append(np.mean(np.array(data), axis=0).tolist())
 
 run()
 
