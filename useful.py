@@ -66,15 +66,34 @@ def gini_split(classes):
     ginisplit = np.sum(list(map(lambda x: get_gini(x, np.sum(x).item()) * (np.sum(x).item() / ttl), classes)))
     print(f"gini split:             {ginisplit}")
 
-def entropy(classes):
+def get_entropy(classes):
     ttl = np.sum(classes).item()
-    val = 0 - np.sum(list(map(lambda x: (x / ttl) * math.log2(x / ttl) if x != 0 else 0, classes)))
-    print(f"entropy:                {val}")
+    return 0 - np.sum(list(map(lambda x: (x / ttl) * math.log2(x / ttl) if x != 0 else 0, classes)))
+
+def entropy(classes):
+    print(f"entropy:                {get_entropy(classes)}")
 
 def error(classes):
     ttl = np.sum(classes).item()
     val = 1 - np.max(list(map(lambda x: x / ttl, classes))).item()
     print(f"error:                  {val}")
+
+def entropy_gain(classes):
+    vecs = np.sum(classes, axis=0)
+    ttl = np.sum(vecs).item()
+    original = get_entropy(vecs)
+    print(f"entropy gain:           {original - np.sum(list(map(lambda x: get_entropy(x) * (np.sum(x).item() / ttl), classes))).item()}")
+
+def _95_confidence(model1, model2):
+    n1 = model1[0]
+    e1 = model1[1]
+    n2 = model2[0]
+    e2 = model2[1]
+    d = abs(e1 - e2)
+    val = e1 * (1 - e1) / n1 + e2 * (1 - e2) / n2
+    val1 = d - 1.96 * math.sqrt(val)
+    val2 = d + 1.96 * math.sqrt(val)
+    print(f"95% interval:           ({val1}, {val2})")
 
 
 # ***************    EXAMPLES    *************** #
@@ -151,3 +170,10 @@ entropy(vec14)
 error(vec14)
 entropy(vec15)
 error(vec15)
+entropy_gain([vec13, vec14, vec15])
+
+# ********************************************** #
+print("=" * 50)
+
+# [size, error]
+_95_confidence([30, 0.15], [5000, 0,25])
