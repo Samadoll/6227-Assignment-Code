@@ -95,6 +95,20 @@ def _95_confidence(model1, model2):
     val2 = d + 1.96 * math.sqrt(val)
     print(f"95% interval:           ({val1}, {val2})")
 
+def rule_eveluation(n, covered_n, k_classes, probability):
+    print(f"accuracy:               {covered_n / n}")
+    print(f"laplace:                {(covered_n + 1) / (n + k_classes)}")
+    print(f"m-estimate:             {(covered_n + k_classes * probability) / (n + k_classes)}")
+
+def normal_distribution_probability(values, target):
+    mean = np.mean(values).item()
+    variance = np.var(values).item()
+    print(f"normal distribute probability:  {1 / (math.sqrt(2 * math.pi * variance)) * math.exp(0 - (target - mean)**2 / (2 * variance))}")
+
+def support_confidence(s1, s2, ttl):
+    print(f"support:                {s2 / ttl}")
+    print(f"confidencd:             {s2 / s1}")
+
 
 # ***************    EXAMPLES    *************** #
 
@@ -177,3 +191,21 @@ print("=" * 50)
 
 # [size, error]
 _95_confidence([30, 0.15], [5000, 0,25])
+
+# ********************************************** #
+print("=" * 50)
+
+vec16 = np.array([125, 100, 70, 120, 60, 220, 75])
+targe16 = 120
+normal_distribution_probability(vec16, targe16)
+
+# ********************************************** #
+# Mining Association Rules
+print("=" * 50)
+
+# given {A, B} -> {C}
+# support 1 count: {A, B}     given 3
+# support 2 count: {A, B, C}  given 2
+# ttl:                  given 5
+support_confidence(3, 2, 5)
+
