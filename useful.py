@@ -112,8 +112,8 @@ def support_confidence(s1, s2, ttl):
 
 # ***************    EXAMPLES    *************** #
 
-vec1 = np.array([3,2,0,5,0,0,0,2,0,0])
-vec2 = np.array([1,0,0,0,0,0,0,1,0,2])
+vec1 = np.array([ 3, 2, 0, 2, 1, 1, 0, 2, 1, 0 ])
+vec2 = np.array([ 1, 2, 0, 1, 1, 0, 2, 1, 3, 1 ])
 print(f"v1: {vec1}\nv2: {vec2}")
 
 manhattan(vec1, vec2)
@@ -156,12 +156,12 @@ mahalanobis_distance(vec6, vec7, covariance)
 # find least gini split
 print("=" * 50)
 
-vec8 = np.array([3, 3])
-vec9 = np.array([0, 4])
-print(f"v8: {vec6}\nv9: {vec7}")
+vec8 = np.array([4, 2])
+vec9 = np.array([1, 3])
+print(f"v8: {vec8}\nv9: {vec9}")
 
-gini8 = gini(vec7, np.sum(vec7).item())
-gini9 = gini(vec8, np.sum(vec8).item())
+gini8 = gini(vec8, np.sum(vec8).item())
+gini9 = gini(vec9, np.sum(vec9).item())
 gini_split(np.array([vec8, vec9]))
 
 vec10 = np.array([1,4])
@@ -205,7 +205,7 @@ print("=" * 50)
 
 # given {A, B} -> {C}
 # support 1 count: {A, B}     given 3
-# support 2 count: {A, B, C}  given 2
+# support 2 count: {A, B, C}  given 3
 # ttl:                  given 5
-support_confidence(3, 2, 5)
+support_confidence(3, 3, 5)
 
